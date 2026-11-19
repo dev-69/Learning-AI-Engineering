@@ -1,11 +1,12 @@
 from openai import OpenAI
 from dotenv import load_dotenv
+load_dotenv()
+
 from tools import TOOLS, FUNCTION_NAME_TO_FUNCTION_MAP
 
 import os
 import json
 
-load_dotenv()
 
 client = OpenAI(
     base_url=os.getenv("BASE_URL"),
@@ -19,11 +20,14 @@ MAX_STEPS = 5
 
 messages.append(
     {
-        "role":"system",
-        "content":"Act like a very humble agent and always respond always 10 words "
+        "role": "system",
+        "content": (
+            "You are a helpful, humble AI assistant. Use your tools whenever needed. "
+            "When a tool returns detailed information, present a clear, well-structured, "
+            "and complete answer to the user."
+        )
     }
 )
-
 while True:
 
     user_input = input("\nYou: ")
@@ -60,8 +64,10 @@ while True:
 
             try: 
                 func_args = json.loads(tool_call.function.arguments or "{}")
+                #print(f"  [Tool] Calling {func_name}({func_args})")
                 fn = FUNCTION_NAME_TO_FUNCTION_MAP[func_name]
                 result = fn(**func_args)
+                #print(f"  [Tool Result]\n{result}\n")
             except Exception as e: 
                 result = f"Error while running the function {func_name} : {e}"
 

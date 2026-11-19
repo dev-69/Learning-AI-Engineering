@@ -1,5 +1,22 @@
 from datetime import datetime
 import requests
+from google import genai
+from google.genai.errors import APIError
+
+gemini_client = genai.Client()
+
+def ask_gemini(question: str) -> str:
+    try:
+        # Use a Flash model (best free-tier rate limits)
+        response = gemini_client.models.generate_content(
+            model="gemini-3.5-flash-lite",
+            contents=question,
+        )
+        return response.text or "Gemini returned an empty response"
+    except APIError as e:
+        if e.code == 429:
+            return "Gemini free tier rate limit reached. Try again in a minute."
+        return f"Gemini API error: {e.message}"
 
 def get_current_time():
     return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -29,6 +46,23 @@ TOOLS = [
             "parameters" : { "type" : "object", "properties" : {}},
         }
     },
+    {
+        "type": "function",
+        "function": {
+            "name": "ask_gemini",
+            "description": "Ask Gemini a question. ALWAYS call this tool when the user says 'ask gemini' or when local knowledge is not enough.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "question": {
+                        "type": "string",
+                        "description": "The exact question to send to Gemini"
+                    }
+                },
+                "required": ["question"]
+            },
+        }
+    },  
 
     {
         "type" :"function",
@@ -50,6 +84,7 @@ TOOLS = [
 ]
 
 FUNCTION_NAME_TO_FUNCTION_MAP = {
+    "ask_gemini" : ask_gemini,
     "get_current_time" : get_current_time,
     "get_city_weather" : get_city_weather,
     "get_user_city" : get_user_city
