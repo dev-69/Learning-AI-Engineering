@@ -14,10 +14,13 @@ client = OpenAI(
 
 messages = []
 
+MAX_STEPS = 5
+# max number of tool calls for a user's question
+
 messages.append(
     {
         "role":"system",
-        "content":"Act like a very humble agent and always respond under 20 words "
+        "content":"Act like a very humble agent and always respond always 10 words "
     }
 )
 
@@ -35,37 +38,46 @@ while True:
         }
     )
 
-    response = client.chat.completions.create(
-        model=os.getenv("MODEL"),
-        messages=messages,
-        tools=TOOLS
-    )
+    #Chained Tool Calling
+    for step in range(MAX_STEPS):
 
-    msg = response.choices[0].message
+        response = client.chat.completions.create(
+            model=os.getenv("MODEL"),
+            messages=messages,
+            tools=TOOLS
+        )
 
-    if msg.tool_calls:
+        msg = response.choices[0].message
+
+        if not msg.tool_calls:
+            break
+
         messages.append(msg)
 
         for tool_call in msg.tool_calls:
             func_name = tool_call.function.name
-            func_args = json.loads(tool_call.function.arguments or "{}")
+            func_args = {}
 
-            fn = FUNCTION_NAME_TO_FUNCTION_MAP[func_name]
-            result = fn(**func_args)
+            try: 
+                func_args = json.loads(tool_call.function.arguments or "{}")
+                fn = FUNCTION_NAME_TO_FUNCTION_MAP[func_name]
+                result = fn(**func_args)
+            except Exception as e: 
+                result = f"Error while running the function {func_name} : {e}"
 
             messages.append({
                 "role" : "tool",
                 "tool_id" : tool_call.id,
                 "content" : str(result)
             })
-
-        #2nd call to LLM API
-        response = client.chat.completions.create(
-            model=os.getenv("MODEL"),
-            messages=messages,
-        )
-
-        msg = response.choices[0].message
+    else :
+        fallback = "Sorry, exhausted the number of tool calling set by the developer"
+        messages.append({
+            "role" : "assistant",
+            "content" : fallback
+        })
+        print("Assistant: " + fallback)
+        continue
 
     messages.append({
         "role" : "assistant",

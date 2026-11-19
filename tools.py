@@ -9,7 +9,8 @@ def get_city_weather(city):
     response = requests.get(url, timeout=10)
     return response.text
 
-
+def get_user_city():
+    return "Mumbai"
 
 TOOLS = [
     {
@@ -20,6 +21,15 @@ TOOLS = [
             "parameters" : { "type" : "object", "properties" : {}},
         }
     },
+    {
+        "type" :"function",
+        "function" : {
+            "name" : "get_user_city",
+            "description" : "returns the user's current city. Use this when the user says 'my city', 'my location' without naming the city",
+            "parameters" : { "type" : "object", "properties" : {}},
+        }
+    },
+
     {
         "type" :"function",
         "function" : {
@@ -41,5 +51,6 @@ TOOLS = [
 
 FUNCTION_NAME_TO_FUNCTION_MAP = {
     "get_current_time" : get_current_time,
-    "get_city_weather" : get_city_weather
+    "get_city_weather" : get_city_weather,
+    "get_user_city" : get_user_city
 }
