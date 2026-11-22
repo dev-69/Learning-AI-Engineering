@@ -5,11 +5,8 @@ from openai import OpenAI
 from dotenv import load_dotenv
 load_dotenv()
 
-
 from tools import TOOLS,run_tool
 from utilities.utilities import log
-
-
 
 client = OpenAI(
     base_url=os.getenv("BASE_URL"),
@@ -19,7 +16,6 @@ client = OpenAI(
 messages = []
 
 MAX_STEPS = 5
-# max number of tool calls for a user's question
 
 messages.append(
     {
@@ -51,7 +47,6 @@ def stream_chat(history):
             
             delta = chunk.choices[0].delta
 
-            #do we have message content for the LLM
             if delta.content:
                 if not label_printed:
                     print("Assistant: ", end="", flush=True)
@@ -59,7 +54,6 @@ def stream_chat(history):
                 print(delta.content, end="", flush=True)
                 full_response += delta.content
 
-            #do we have tool calls for the LLM
             for tc in (delta.tool_calls or []):
                 obj = calls.setdefault(
                     tc.index, 
@@ -126,21 +120,11 @@ while True:
 
         full_response, tool_calls = stream_chat(messages)
 
-        # response = client.chat.completions.create(
-        #     model=os.getenv("MODEL"),
-        #     messages=messages,
-        #     tools=TOOLS
-        # )
-
-        # msg = response.choices[0].message
-
         if not tool_calls:
             break
 
         log(f"  Step {step+1} : model requested {len(tool_calls)} tool calls ")
 
-
-        #  messages.append(msg) <-- we have to build this part msg now it consists of role, content, tool_calls
         messages.append({
             "role" : "assistant",
             "content" : full_response,
@@ -163,12 +147,3 @@ while True:
         })
         print("Assistant: " + fallback)
         continue
-
-    # messages.append({
-    #     "role" : "assistant",
-    #     "content" : msg.content
-    # })
-
-    # print("Assistant: " + (msg.content or ""))
-    
-    #  removing everything because we are already doing it before in the earlier loop
