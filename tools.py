@@ -4,6 +4,7 @@ import json
 from utilities.utilities import log 
 from google import genai
 from google.genai.errors import APIError
+from rag import search
 
 gemini_client = genai.Client()
 
@@ -47,7 +48,45 @@ def get_city_weather(city):
 def get_user_city():
     return "Mumbai"
 
+def search_knowledge_base(query):
+    results = search(query, top_k=3)
+
+    log(f"Knowledge Base search: {query}")
+    for r in results:
+        log(f"  {r['score']:.2f} - {r['source']} #{r['chunk_id']}")
+
+    blocks = []
+    for r in results:
+        sourceFileName  = r['source']
+        chunkID         = r['chunk_id']
+        chunkText       = r['text']
+
+        header = f"[{sourceFileName} #{chunkID}]"
+        block = f"{header}\n{chunkText}"
+        blocks.append(block)
+
+    return "\n\n".join(blocks) 
+
 TOOLS = [
+    {
+        "type": "function",
+        "function": {
+            "name": "search_knowledge_base",
+            "description": "Searches the company's knowledge base: leave, medical, HR, hiring, tech, incident "
+                            "reports and travel expense policies. Use it for any question about company policies or documents"
+                            "Returns the most relavant passages with their source",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "query": {
+                        "type": "string",
+                        "description": "The user's question, rewritten as a short, self-contained query."
+                    }
+                },
+                "required": ["query"]
+            },
+        }
+    },      
     {
         "type" :"function",
         "function" : {
@@ -105,6 +144,7 @@ FUNCTION_NAME_TO_FUNCTION_MAP = {
     "ask_gemini" : ask_gemini,
     "get_current_time" : get_current_time,
     "get_city_weather" : get_city_weather,
-    "get_user_city" : get_user_city
+    "get_user_city" : get_user_city,
+    "search_knowledge_base" : search_knowledge_base 
 }
 
