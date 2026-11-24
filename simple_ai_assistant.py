@@ -7,6 +7,7 @@ load_dotenv()
 
 from tools import TOOLS,run_tool
 from utilities.utilities import log
+from memory import list_chats, load_chat, save_chat
 
 client = OpenAI(
     base_url=os.getenv("BASE_URL"),
@@ -17,22 +18,24 @@ messages = []
 
 MAX_STEPS = 5
 
-messages.append(
-    {
-        "role": "system",
-        "content": (
-            "You are a helpful, humble assistant for Zorvex Technologies employees. "
-            "Answer general questions (programming, science, advice) from your own knowledge. "
-            "Use get_current_time, get_city_weather and get_user_city only for the current time, the weather, or the user's city. "
-            "For ANY question about Zorvex policies, benefits, leave, medical cover, HR, hiring, tech processes, incident reports or travel expenses, "
-            "you MUST first call search_knowledge_base. "
-            "Answer company questions ONLY from the text that search_knowledge_base returns. Do not use outside knowledge for company facts. "
-            "After the answer, cite the source like (leave_policy.txt #3). "
-            "If the returned text does not contain the answer, say exactly: I could not find this in the knowledge base. "
-            "Keep answers under 100 words."
-        ),
-    }
-)
+SYSTEM_MESSAGE={
+    "role": "system",
+    "content": (
+        "You are a helpful, humble assistant for Zorvex Technologies employees. "
+        "Answer general questions (programming, science, advice) from your own knowledge. "
+        "Use get_current_time, get_city_weather and get_user_city only for the current time, the weather, or the user's city. "
+        "For ANY question about Zorvex policies, benefits, leave, medical cover, HR, hiring, tech processes, incident reports or travel expenses, "
+        "you MUST first call search_knowledge_base. "
+        "Answer company questions ONLY from the text that search_knowledge_base returns. Do not use outside knowledge for company facts. "
+        "After the answer, cite the source like (leave_policy.txt #3). "
+        "If the returned text does not contain the answer, say exactly: I could not find this in the knowledge base. "
+        "Keep answers under 100 words."
+    ),
+}
+
+messages = [SYSTEM_MESSAGE]
+chat_file_path = None   #none means this chat is not saved yet
+
 
 def stream_chat(history):
     stream = client.chat.completions.create(    
@@ -105,6 +108,35 @@ def build_tool_calls_payload(tool_calls):
         payload.append(tool_call_dict)
     return payload
 
+#print save chat as numbered list
+def show_chats(chats):
+    chat_number = 1
+    for chat in chats:
+        title = chat["title"]
+        count = chat["count"]
+        updated = chat["updated"]
+
+        print(f"{chat_number}. {title} - {count} messages (Last updated: {updated})")
+        chat_number += 1
+
+
+
+existing_chats = list_chats()
+
+# print("printing existing chats")
+# print(existing_chats)
+
+if existing_chats:
+    last_chat = existing_chats[0]
+    user_answer = input(f"Continue your last chat \"{last_chat['title']}\"? (y/n): ")
+
+    if user_answer == "y":
+        data = load_chat(last_chat["path"])
+        if data is not None:
+            messages = [SYSTEM_MESSAGE]+ data["messages"]
+            chat_file_path = last_chat["path"]
+            print(f"Resumed : {last_chat['title']} ({len(data['messages'])}  messages)")
+
 
 
 while True:
@@ -113,6 +145,52 @@ while True:
 
     if user_input.lower() in ["exit", "quit", "bye", "goodbye"]:
         break
+
+    # now user can give any other commmands like /new, /chats, /resume
+    command = user_input.strip().lower()
+
+    if command == "/new":
+        messages = [SYSTEM_MESSAGE]
+        chat_file_path = None
+        print("Started a new chat. The old one is saved")
+        continue
+
+    if command == "/chats":
+        chats = list_chats()
+        if chats:
+            show_chats(chats)
+        else:
+            print("No saved chats yet")
+        continue
+
+    if command == "/resume":
+        chats = list_chats()
+        if not chats:
+            print("No chats to resume")
+            continue
+
+        show_chats(chats)
+        choice = input("Chat number to resume (press Enter to cancel): ")
+        choice = choice.strip()
+
+        if not choice:
+            continue
+
+        if not choice.isdigit() or not (1 <= int(choice) <= len(chats)):
+            print("Cancelled. Invalid Choice")
+            continue
+
+        picked_chat = chats[int(choice) - 1]
+        data = load_chat(picked_chat["path"])
+        if data is None:
+            print("That chat cannot be loaded")
+            continue
+
+        messages = [SYSTEM_MESSAGE] + data["messages"]
+        chat_file_path = picked_chat["path"]
+        print(f"Resumed: {picked_chat['title']} ({len(data['messages'])}  messages)")
+        continue
+
 
     messages.append(
         {
@@ -145,11 +223,22 @@ while True:
                 "tool_call_id" : tool_call.id,
                 "content" : str(result)
             })
+
     else :
         fallback = "Sorry, exhausted the number of tool calling set by the developer"
         messages.append({
             "role" : "assistant",
             "content" : fallback
-        })
+        })  
         print("Assistant: " + fallback)
+        chat_file_path = save_chat(chat_file_path, messages[1:])
         continue
+
+    # Should this be present here or not
+    messages.append(
+        {
+            "role" : "assistant",
+            "content" : full_response
+        }
+    )
+    chat_file_path = save_chat(chat_file_path, messages[1:])

@@ -1,0 +1,14 @@
+{
+    "title": "Explain Kubernetes in 20 words",
+    "updated": "2026-11-24_16:32:29",
+    "messages": [
+        {
+            "role": "user",
+            "content": "Explain Kubernetes in 20 words"
+        },
+        {
+            "role": "assistant",
+            "content": "Kubernetes is an open-source container orchestration platform for automating deployment, scaling, and management of containerized applications. (9 words)"
+        }
+    ]
+}

@@ -1,0 +1,22 @@
+{
+    "title": "Explain AWS in 20 words",
+    "updated": "2026-11-24_16:31:40",
+    "messages": [
+        {
+            "role": "user",
+            "content": "Explain AWS in 20 words"
+        },
+        {
+            "role": "assistant",
+            "content": "Amazon Web Services (AWS) is a cloud computing platform providing infrastructure, storage, databases, machine learning, and developer tools for businesses. (20 words)"
+        },
+        {
+            "role": "user",
+            "content": "Can you tell me what did I ask you in my last message ?"
+        },
+        {
+            "role": "assistant",
+            "content": "Your last message was: \"Explain AWS in 20 words\"."
+        }
+    ]
+}
