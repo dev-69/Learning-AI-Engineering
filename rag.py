@@ -3,8 +3,10 @@ import json
 
 import numpy
 
+from utilities.utilities import log 
 from openai import OpenAI
 from dotenv import load_dotenv
+from chromadb_store import search_collection
 
 load_dotenv()
 
@@ -102,22 +104,25 @@ def load_chunks():
 
     return chunks
  
-chunks = load_chunks()
-
 def search(query, top_k=3):
-    query_vector = get_embedding(query)
+    # chunks = load_chunks()
+    # query_vector = get_embedding(query)
 
-    results = []
-    for chunk in chunks:
-        score = cosine_similarity(query_vector, chunk["vector"])
-        results.append(
-            {
-                "score" : float(score),
-                "source" : chunk["source"],
-                "chunk_id" : chunk["chunk_id"],
-                "text" : chunk["text"],
-                "size" : len(chunk["text"])
-        })
+    # results = []
+    # for chunk in chunks:
+    #     score = cosine_similarity(query_vector, chunk["vector"])
+    #     results.append(
+    #         {
+    #             "score" : float(score),
+    #             "source" : chunk["source"],
+    #             "chunk_id" : chunk["chunk_id"],
+    #             "text" : chunk["text"],
+    #             "size" : len(chunk["text"])
+    #     })
 
-    results.sort(key=lambda rec:rec["score"], reverse=True)
-    return results[:top_k]
+    # results.sort(key=lambda rec:rec["score"], reverse=True)
+    # return results[:top_k]
+
+    # instead of searching the VECTOR_STORE_FILE we should now search the chromadb collection
+    log(f"in the search function in rag.py")
+    return search_collection(query, top_k)

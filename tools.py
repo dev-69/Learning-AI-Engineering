@@ -5,7 +5,7 @@ from utilities.utilities import log
 from google import genai
 from google.genai.errors import APIError
 from rag import search
-
+    
 gemini_client = genai.Client()
 
 def run_tool(tool_call):
@@ -49,6 +49,7 @@ def get_user_city():
     return "Mumbai"
 
 def search_knowledge_base(query):
+    log(f"in the search_knowledge function in tools.py")
     results = search(query, top_k=3)
 
     log(f"Knowledge Base search: {query}")

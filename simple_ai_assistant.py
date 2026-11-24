@@ -142,7 +142,7 @@ while True:
 
             messages.append({
                 "role" : "tool",
-                "tool_id" : tool_call.id,
+                "tool_call_id" : tool_call.id,
                 "content" : str(result)
             })
     else :
